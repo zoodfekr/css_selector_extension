@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>انتخاب‌گر CSS</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="title">انتخاب‌گر CSS</div>
+        <div class="subtitle">انتخاب المنت و ارسال به بک‌اند</div>
+      </header>
+
+      <section class="section">
+        <label class="label" for="backendUrl">آدرس بک‌اند</label>
+        <input id="backendUrl" class="input" type="url" placeholder="https://api.example.com/collect" />
+      </section>
+
+      <section class="grid-2 section">
+        <div>
+          <label class="label" for="siteUrl">آدرس سایت</label>
+          <input id="siteUrl" class="input" type="url" placeholder="https://site.com/page" />
+        </div>
+        <div class="actions-inline">
+          <button id="fillFromTab" class="btn ghost" type="button">گرفتن از تب</button>
+        </div>
+      </section>
+
+      <section class="fields">
+        <div class="field-row">
+          <label class="label" for="selector-title">عنوان</label>
+          <div class="row">
+            <input id="selector-title" class="input grow" type="text" placeholder="CSS Selector" />
+            <button class="btn select" data-field="title" type="button">انتخاب از صفحه</button>
+            <button class="btn ghost clear" data-field="title" type="button">پاک</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="label" for="selector-summary">خلاصه</label>
+          <div class="row">
+            <input id="selector-summary" class="input grow" type="text" placeholder="CSS Selector" />
+            <button class="btn select" data-field="summary" type="button">انتخاب از صفحه</button>
+            <button class="btn ghost clear" data-field="summary" type="button">پاک</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="label" for="selector-link">لینک</label>
+          <div class="row">
+            <input id="selector-link" class="input grow" type="text" placeholder="CSS Selector" />
+            <button class="btn select" data-field="link" type="button">انتخاب از صفحه</button>
+            <button class="btn ghost clear" data-field="link" type="button">پاک</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="label" for="selector-category">دسته‌بندی</label>
+          <div class="row">
+            <input id="selector-category" class="input grow" type="text" placeholder="CSS Selector" />
+            <button class="btn select" data-field="category" type="button">انتخاب از صفحه</button>
+            <button class="btn ghost clear" data-field="category" type="button">پاک</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="label" for="selector-date">تاریخ</label>
+          <div class="row">
+            <input id="selector-date" class="input grow" type="text" placeholder="CSS Selector" />
+            <button class="btn select" data-field="date" type="button">انتخاب از صفحه</button>
+            <button class="btn ghost clear" data-field="date" type="button">پاک</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <button id="submitBtn" class="btn primary full" type="button">ارسال</button>
+        <div id="status" class="status" role="status"></div>
+      </section>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
