@@ -1,24 +1,23 @@
 <!doctype html>
 <html lang="fa" dir="rtl">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>انتخاب‌گر CSS</title>
-    <link rel="stylesheet" href="popup.css" />
-  </head>
-  <body>
-    <div class="app">
-      <header class="header">
-        <div class="title">انتخاب‌گر CSS</div>
-        <div class="subtitle">انتخاب المنت و ارسال به بک‌اند</div>
-      </header>
 
-      <section class="section">
-        <label class="label" for="backendUrl">آدرس بک‌اند</label>
-        <input id="backendUrl" class="input" type="url" placeholder="https://api.example.com/collect" />
-      </section>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>انتخاب‌گر CSS</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
 
-      <section class="grid-2 section">
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="title">css selector</div>
+      <div class="subtitle">تعیین محتوای سایت </div>
+    </header>
+
+    <section class="section" style="background-color: #94724d86;">
+      <div class="section-caption">مشخصات منبع و صفحه اصلی</div>
+      <div class="grid-2">
         <div>
           <label class="label" for="siteUrl">آدرس سایت</label>
           <input id="siteUrl" class="input" type="url" placeholder="https://site.com/page" />
@@ -26,57 +25,134 @@
         <div class="actions-inline">
           <button id="fillFromTab" class="btn ghost" type="button">گرفتن از تب</button>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section class="fields">
-        <div class="field-row">
-          <label class="label" for="selector-title">عنوان</label>
-          <div class="row">
-            <input id="selector-title" class="input grow" type="text" placeholder="CSS Selector" />
-            <button class="btn select" data-field="title" type="button">انتخاب از صفحه</button>
-            <button class="btn ghost clear" data-field="title" type="button">پاک</button>
-          </div>
+    <section class="section" style="background-color: #5e4b8fcb;">
+      <div class="section-caption">مشخصات منبع و زبان/کشور</div>
+      <div class="grid-2" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div>
+          <label class="label" for="sourceName">نام منبع</label>
+          <input id="sourceName" class="input" type="text" placeholder="مثلاً: BBC Persian" />
         </div>
-        <div class="field-row">
-          <label class="label" for="selector-summary">خلاصه</label>
-          <div class="row">
-            <input id="selector-summary" class="input grow" type="text" placeholder="CSS Selector" />
-            <button class="btn select" data-field="summary" type="button">انتخاب از صفحه</button>
-            <button class="btn ghost clear" data-field="summary" type="button">پاک</button>
-          </div>
+        <div>
+          <label class="label" for="sourceImage">تصویر (اختیاری)</label>
+          <input id="sourceImage" class="input" type="url" placeholder="https://site.com/logo.png" />
         </div>
-        <div class="field-row">
-          <label class="label" for="selector-link">لینک</label>
-          <div class="row">
-            <input id="selector-link" class="input grow" type="text" placeholder="CSS Selector" />
-            <button class="btn select" data-field="link" type="button">انتخاب از صفحه</button>
-            <button class="btn ghost clear" data-field="link" type="button">پاک</button>
-          </div>
+        <div>
+          <label class="label" for="lang">زبان (اختیاری)</label>
+          <input id="lang" class="input" type="text" placeholder="fa, en, ..." />
         </div>
-        <div class="field-row">
-          <label class="label" for="selector-category">دسته‌بندی</label>
-          <div class="row">
-            <input id="selector-category" class="input grow" type="text" placeholder="CSS Selector" />
-            <button class="btn select" data-field="category" type="button">انتخاب از صفحه</button>
-            <button class="btn ghost clear" data-field="category" type="button">پاک</button>
-          </div>
+        <div>
+          <label class="label" for="country">کشور (اختیاری)</label>
+          <input id="country" class="input" type="text" placeholder="IR, US, ..." />
         </div>
-        <div class="field-row">
-          <label class="label" for="selector-date">تاریخ</label>
-          <div class="row">
-            <input id="selector-date" class="input grow" type="text" placeholder="CSS Selector" />
-            <button class="btn select" data-field="date" type="button">انتخاب از صفحه</button>
-            <button class="btn ghost clear" data-field="date" type="button">پاک</button>
-          </div>
-        </div>
-      </section>
+      </div>
+    </section>
 
-      <section class="section">
-        <button id="submitBtn" class="btn primary full" type="button">ارسال</button>
-        <div id="status" class="status" role="status"></div>
-      </section>
+    <section class="fields" style="background-color: rgba(69, 87, 121, 0.712);">
+      <div class="section-caption">سلکتورهای صفحه اصلی </div>
+      <div class="field-row">
+        <label class="label" for="selector-main-container">بخش محتوا</label>
+        <div class="row">
+          <input id="selector-main-container" class="input grow" type="text" placeholder="CSS Selector" />
+          <button class="btn select" data-field="main_container" type="button">انتخاب از صفحه</button>
+          <button class="btn ghost clear" data-field="main_container" type="button">پاک</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="label" for="selector-main-title">عنوان در فهرست</label>
+        <div class="row">
+          <input id="selector-main-title" class="input grow" type="text" placeholder="CSS Selector" />
+          <button class="btn select" data-field="main_title" type="button">انتخاب از صفحه</button>
+          <button class="btn ghost clear" data-field="main_title" type="button">پاک</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="label" for="selector-main-summary">خلاصه در فهرست (اختیاری)</label>
+        <div class="row">
+          <input id="selector-main-summary" class="input grow" type="text" placeholder="CSS Selector" />
+          <button class="btn select" data-field="main_summary" type="button">انتخاب از صفحه</button>
+          <button class="btn ghost clear" data-field="main_summary" type="button">پاک</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="label" for="selector-main-link">لینک در فهرست</label>
+        <div class="row">
+          <input id="selector-main-link" class="input grow" type="text" placeholder="CSS Selector" />
+          <button class="btn select" data-field="main_link" type="button">انتخاب از صفحه</button>
+          <button class="btn ghost clear" data-field="main_link" type="button">پاک</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="fields" style="background-color: rgba(69, 121, 86, 0.712);">
+      <div class="section-caption">سلکتورهای صفحه خبر </div>
+      <div class="field-row">
+        <label class="label" for="selector-title">عنوان</label>
+        <div class="row">
+          <input id="selector-title" class="input grow" type="text" placeholder="CSS Selector" />
+          <button class="btn select" data-field="title" type="button">انتخاب از صفحه</button>
+          <button class="btn ghost clear" data-field="title" type="button">پاک</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="label" for="selector-summary">خلاصه</label>
+        <div class="row">
+          <input id="selector-summary" class="input grow" type="text" placeholder="CSS Selector" />
+          <button class="btn select" data-field="summary" type="button">انتخاب از صفحه</button>
+          <button class="btn ghost clear" data-field="summary" type="button">پاک</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="label" for="selector-category">دسته‌بندی</label>
+        <div class="row">
+          <input id="selector-category" class="input grow" type="text" placeholder="CSS Selector" />
+          <button class="btn select" data-field="category" type="button">انتخاب از صفحه</button>
+          <button class="btn ghost clear" data-field="category" type="button">پاک</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="label" for="selector-date">تاریخ</label>
+        <div class="row">
+          <input id="selector-date" class="input grow" type="text" placeholder="CSS Selector" />
+          <button class="btn select" data-field="date" type="button">انتخاب از صفحه</button>
+          <button class="btn ghost clear" data-field="date" type="button">پاک</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="label" for="selector-content">محتوا</label>
+        <div class="row">
+          <input id="selector-content" class="input grow" type="text" placeholder="CSS Selector" />
+          <button class="btn select" data-field="content" type="button">انتخاب از صفحه</button>
+          <button class="btn ghost clear" data-field="content" type="button">پاک</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="label" for="selector-image">تصویر محتوا</label>
+        <div class="row">
+          <input id="selector-image" class="input grow" type="text" placeholder="CSS Selector" />
+          <button class="btn select" data-field="image" type="button">انتخاب از صفحه</button>
+          <button class="btn ghost clear" data-field="image" type="button">پاک</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- <section class="section"> -->
+    <div class="grid-2" style="grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+      <button id="submitBtn" class="btn primary" type="button">ارسال</button>
+      <button id="resetAllBtn" class="btn ghost" type="button">ریست کلی</button>
     </div>
+    <div id="status" class="status" role="status"></div>
+    <!-- </section> -->
 
-    <script src="popup.js"></script>
-  </body>
+    <div style="text-align: center; margin-top: 10px; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+      <p>نسخه 1.0.0</p>
+      <p>دایره سایبری - تیم توسعه</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
 </html>

@@ -73,6 +73,91 @@
     return '.' + filtered.map(c => c.replace(/\s+/g, '')).join('.');
   }
 
+  // === Generalized selector helpers (stable, class-based) ===
+  function isLikelyGenerated(name) {
+    return /^(ng|_ng|css|jsx|style|chakra|Mui|ant|sc|v)-/i.test(name)
+      || /(^|-)\d{3,}($|-)/.test(name)
+      || /[A-Fa-f0-9]{6,}/.test(name);
+  }
+
+  function isStableClassName(name) {
+    if (!name || typeof name !== 'string') return false;
+    if (name.length < 3 || name.length > 64) return false;
+    if (/^\d+$/.test(name)) return false;
+    if (isLikelyGenerated(name)) return false;
+    return true;
+  }
+
+  function pickMeaningfulClasses(element) {
+    const classes = Array.from(element.classList || []).filter(isStableClassName);
+    if (classes.length === 0) return [];
+    const scored = classes.map(c => ({
+      name: c,
+      score: (c.includes('__') ? 3 : 0) + (c.includes('-') ? 2 : 0) + (c.length >= 8 ? 1 : 0)
+    }));
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, 2).map(x => x.name);
+  }
+
+  function classSelectorFor(element) {
+    const chosen = pickMeaningfulClasses(element);
+    if (chosen.length === 0) return '';
+    return '.' + chosen.map(c => c.replace(/\s+/g, '')).join('.');
+  }
+
+  function looksLikeListContainer(element) {
+    const listKeywords = /(list|grid|posts|items|results|feed|stream|front|archive|loop)/i;
+    return Array.from(element.classList || []).some(c => listKeywords.test(c))
+      || /^(ul|ol)$/i.test(element.tagName);
+  }
+
+  function findGoodAncestor(element, maxDepth = 6) {
+    let depth = 0;
+    let current = element.parentElement;
+    while (current && depth < maxDepth) {
+      const clsSel = classSelectorFor(current);
+      if (clsSel && looksLikeListContainer(current)) return current;
+      if (clsSel && depth >= 1) return current; // any stable class after at least one hop
+      current = current.parentElement;
+      depth += 1;
+    }
+    return null;
+  }
+
+  function buildGeneralSelector(element) {
+    if (!(element instanceof Element)) return '';
+    const selfSel = classSelectorFor(element) || element.tagName.toLowerCase();
+    const ancestor = findGoodAncestor(element, 7);
+    const ancSel = ancestor ? classSelectorFor(ancestor) : '';
+    const selector = ancSel ? `${ancSel} ${selfSel}` : selfSel;
+    try { if (element.matches(selector)) return selector; } catch {}
+    return selfSel || getUniqueSelector(element);
+  }
+
+  function buildDescendantSelector(containerSelector, targetElement) {
+    if (!containerSelector || !(targetElement instanceof Element)) return '';
+    const selfSel = classSelectorFor(targetElement) || targetElement.tagName.toLowerCase();
+    const combined = `${containerSelector} ${selfSel}`;
+    try { if (targetElement.matches(combined)) return combined; } catch {}
+    // fallback to unique within container using :scope
+    try {
+      const container = document.querySelector(containerSelector);
+      if (container) {
+        // attempt to build path within container only
+        const segments = [];
+        let current = targetElement;
+        while (current && current !== container && current.nodeType === 1) {
+          const classes = classSelectorFor(current) || current.tagName.toLowerCase();
+          segments.unshift(classes);
+          current = current.parentElement;
+        }
+        const scoped = `${containerSelector} ${segments.join(' ')}`.trim();
+        if (container.querySelectorAll(scoped.replace(/:scope\s+/g, '')).length > 0) return scoped;
+      }
+    } catch {}
+    return combined;
+  }
+
   function indexWithinType(element) {
     let idx = 1;
     let prev = element.previousElementSibling;
@@ -147,10 +232,18 @@
 
   async function persistSelection(fieldKey, selector) {
     try {
-      const { selectors: existing } = await chrome.storage.local.get(['selectors']);
-      const selectors = { ...(existing || {}) };
-      selectors[fieldKey] = selector || '';
-      await chrome.storage.local.set({ selectors, lastUpdatedAt: Date.now() });
+      if (typeof fieldKey === 'string' && fieldKey.startsWith('main_')) {
+        const subKey = fieldKey.replace(/^main_/, '');
+        const { mainSelectors: existing } = await chrome.storage.local.get(['mainSelectors']);
+        const mainSelectors = { ...(existing || {}) };
+        mainSelectors[subKey] = selector || '';
+        await chrome.storage.local.set({ mainSelectors, lastUpdatedAt: Date.now() });
+      } else {
+        const { selectors: existing } = await chrome.storage.local.get(['selectors']);
+        const selectors = { ...(existing || {}) };
+        selectors[fieldKey] = selector || '';
+        await chrome.storage.local.set({ selectors, lastUpdatedAt: Date.now() });
+      }
     } catch {}
   }
 
@@ -163,7 +256,21 @@
     const target = e.target instanceof Element ? e.target : hoverTarget;
     if (!target) return;
 
-    const selector = getUniqueSelector(target);
+    let selector = getUniqueSelector(target);
+    if (typeof currentFieldKey === 'string' && currentFieldKey.startsWith('main_')) {
+      // If a main container is present, constrain selectors inside it
+      try {
+        const { mainSelectors } = await chrome.storage.local.get(['mainSelectors']);
+        const container = mainSelectors?.container;
+        if (container) {
+          selector = buildDescendantSelector(container, target) || selector;
+        } else {
+          selector = buildGeneralSelector(target);
+        }
+      } catch {
+        selector = buildGeneralSelector(target);
+      }
+    }
 
     // persist first to survive popup closing
     await persistSelection(currentFieldKey, selector);
@@ -205,6 +312,10 @@
       try { teardownSelection(); } catch {}
       setupSelection(msg.fieldKey);
     }
+    if (msg?.type === 'PING') {
+      try { sendResponse && sendResponse({ ok: true }); } catch {}
+      return true;
+    }
   });
 
   // ============ Persistent labeled overlays for saved selectors ============
@@ -227,11 +338,16 @@
 
   function labelForField(key) {
     return ({
+      main_title: 'عنوان (فهرست)',
+      main_summary: 'خلاصه (فهرست)',
+      main_link: 'لینک (فهرست)',
       title: 'عنوان',
       summary: 'خلاصه',
       link: 'لینک',
       category: 'دسته‌بندی',
-      date: 'تاریخ'
+      date: 'تاریخ',
+      content: 'محتوا',
+      image: 'تصویر'
     })[key] || key;
   }
 
@@ -340,13 +456,18 @@
 
   async function loadSelectorsAndRender() {
     try {
-      const { selectors } = await chrome.storage.local.get(['selectors']);
+      const { selectors, mainSelectors } = await chrome.storage.local.get(['selectors', 'mainSelectors']);
       const s = selectors || {};
+      const m = mainSelectors || {};
+      upsertFieldOverlay('main_title', m.title);
+      upsertFieldOverlay('main_summary', m.summary);
+      upsertFieldOverlay('main_link', m.link);
       upsertFieldOverlay('title', s.title);
       upsertFieldOverlay('summary', s.summary);
-      upsertFieldOverlay('link', s.link);
       upsertFieldOverlay('category', s.category);
       upsertFieldOverlay('date', s.date);
+      upsertFieldOverlay('content', s.content);
+      upsertFieldOverlay('image', s.image);
     } catch {}
   }
 
@@ -356,9 +477,16 @@
       const next = changes.selectors.newValue || {};
       upsertFieldOverlay('title', next.title);
       upsertFieldOverlay('summary', next.summary);
-      upsertFieldOverlay('link', next.link);
       upsertFieldOverlay('category', next.category);
       upsertFieldOverlay('date', next.date);
+      upsertFieldOverlay('content', next.content);
+      upsertFieldOverlay('image', next.image);
+    }
+    if (area === 'local' && changes.mainSelectors) {
+      const nextM = changes.mainSelectors.newValue || {};
+      upsertFieldOverlay('main_title', nextM.title);
+      upsertFieldOverlay('main_summary', nextM.summary);
+      upsertFieldOverlay('main_link', nextM.link);
     }
   });
 
