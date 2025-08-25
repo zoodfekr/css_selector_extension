@@ -338,6 +338,7 @@
 
   function labelForField(key) {
     return ({
+      main_container: 'بخش محتوا (فهرست)',
       main_title: 'عنوان (فهرست)',
       main_summary: 'خلاصه (فهرست)',
       main_link: 'لینک (فهرست)',
@@ -357,7 +358,9 @@
       position: 'absolute',
       top: '0px', left: '0px', width: '0px', height: '0px',
       borderRadius: '8px',
-      boxShadow: '0 0 0 2px rgba(34,211,238,0.9), 0 0 0 6px rgba(34,211,238,0.15)',
+      boxShadow: fieldKey === 'main_container'
+        ? '0 0 0 2px rgba(251,191,36,0.95), 0 0 0 6px rgba(251,191,36,0.25)'
+        : '0 0 0 2px rgba(34,211,238,0.9), 0 0 0 6px rgba(34,211,238,0.15)',
       background: 'transparent',
       pointerEvents: 'none'
     });
@@ -439,35 +442,167 @@
     fieldOverlays.delete(fieldKey);
   }
 
+  // ===== Multi overlays (blue) for all matches of main list fields inside container =====
+  const mainMultiOverlays = new Map(); // fieldKey -> { nodes: Element[], boxes: HTMLDivElement[] }
+
+  function createBlueBox() {
+    const el = document.createElement('div');
+    Object.assign(el.style, {
+      position: 'absolute',
+      top: '0px', left: '0px', width: '0px', height: '0px',
+      borderRadius: '8px',
+      boxShadow: '0 0 0 2px rgba(34,211,238,0.9), 0 0 0 6px rgba(34,211,238,0.15)',
+      background: 'transparent',
+      pointerEvents: 'none'
+    });
+    ensureOverlayContainer();
+    overlayContainer.appendChild(el);
+    return el;
+  }
+
+  function positionMainMultiOverlays(fieldKey) {
+    const entry = mainMultiOverlays.get(fieldKey);
+    if (!entry) return;
+    const { nodes, boxes } = entry;
+    for (let i = 0; i < boxes.length; i++) {
+      const node = nodes[i];
+      const box = boxes[i];
+      if (!node?.isConnected) continue;
+      const rect = node.getBoundingClientRect();
+      const absTop = window.scrollY + rect.top;
+      const absLeft = window.scrollX + rect.left;
+      box.style.top = `${absTop}px`;
+      box.style.left = `${absLeft}px`;
+      box.style.width = `${rect.width}px`;
+      box.style.height = `${rect.height}px`;
+    }
+  }
+
+  function clearMainMultiOverlays(fieldKey) {
+    const entry = mainMultiOverlays.get(fieldKey);
+    if (!entry) return;
+    for (const box of entry.boxes) box.remove();
+    mainMultiOverlays.delete(fieldKey);
+  }
+
+  function upsertMainMultiOverlays(fieldKey, itemSelector, containerSelector) {
+    // Only operate when container exists and selector is provided
+    clearMainMultiOverlays(fieldKey);
+    if (!itemSelector || !containerSelector) return;
+    let container = null;
+    try { container = document.querySelector(containerSelector); } catch { container = null; }
+    if (!container) return;
+    let nodes = [];
+    try { nodes = Array.from(container.querySelectorAll(itemSelector)); } catch { nodes = []; }
+    if (nodes.length === 0) return;
+    // Skip the first match to avoid duplicating the labeled overlay
+    const [, ...rest] = nodes;
+    if (rest.length === 0) return;
+    const boxes = rest.map(() => createBlueBox());
+    mainMultiOverlays.set(fieldKey, { nodes: rest, boxes });
+    positionMainMultiOverlays(fieldKey);
+  }
+
   function refreshAllOverlays() {
     for (const key of fieldOverlays.keys()) positionFieldOverlay(key);
+    for (const key of mainMultiOverlays.keys()) positionMainMultiOverlays(key);
+    // content multi overlays refresh handled below
+  }
+
+  // ===== Multi overlays for news page content selector (all matches) =====
+  const contentMultiOverlays = { nodes: [], boxes: [] };
+
+  function positionContentMultiOverlays() {
+    const { nodes, boxes } = contentMultiOverlays;
+    for (let i = 0; i < boxes.length; i++) {
+      const node = nodes[i];
+      const box = boxes[i];
+      if (!node?.isConnected) continue;
+      const rect = node.getBoundingClientRect();
+      const absTop = window.scrollY + rect.top;
+      const absLeft = window.scrollX + rect.left;
+      box.style.top = `${absTop}px`;
+      box.style.left = `${absLeft}px`;
+      box.style.width = `${rect.width}px`;
+      box.style.height = `${rect.height}px`;
+    }
+  }
+
+  function clearContentMultiOverlays() {
+    for (const box of contentMultiOverlays.boxes) box.remove();
+    contentMultiOverlays.nodes = [];
+    contentMultiOverlays.boxes = [];
+  }
+
+  function upsertContentMultiOverlays(selector) {
+    clearContentMultiOverlays();
+    if (!selector) return;
+
+    // Try to find the primary target we already labeled
+    const primary = fieldOverlays.get('content')?.target || null;
+
+    // 1) Generalize :nth-of-type parts if present
+    let baseSelector = selector;
+    try { baseSelector = selector.replace(/:nth-of-type\(\d+\)/g, ''); } catch {}
+
+    // 2) Attempt document-wide query for the generalized selector
+    let candidates = [];
+    try { candidates = Array.from(document.querySelectorAll(baseSelector)); } catch { candidates = []; }
+
+    // 3) If too broad or empty, fallback to siblings within the same parent
+    if ((!candidates || candidates.length <= 1) && primary?.parentElement) {
+      const parent = primary.parentElement;
+      const tag = primary.tagName.toLowerCase();
+      candidates = Array.from(parent.children).filter(el => el.tagName.toLowerCase() === tag);
+    }
+
+    // 4) If still empty, as a last resort, use exact selector to collect at least primary
+    if (!candidates || candidates.length === 0) {
+      try { candidates = Array.from(document.querySelectorAll(selector)); } catch { candidates = []; }
+    }
+
+    // Remove the primary node (it already has labeled overlay)
+    const rest = candidates.filter(n => n !== primary);
+    if (rest.length === 0) return;
+
+    const boxes = rest.map(() => createBlueBox());
+    contentMultiOverlays.nodes = rest;
+    contentMultiOverlays.boxes = boxes;
+    positionContentMultiOverlays();
   }
 
   // periodic refresh to handle layout shifts
   let rafId = null;
   function loop() {
     refreshAllOverlays();
+    positionContentMultiOverlays();
     rafId = window.requestAnimationFrame(loop);
   }
   if (!rafId) rafId = window.requestAnimationFrame(loop);
 
-  window.addEventListener('scroll', refreshAllOverlays, true);
-  window.addEventListener('resize', refreshAllOverlays, true);
+  window.addEventListener('scroll', () => { refreshAllOverlays(); positionContentMultiOverlays(); }, true);
+  window.addEventListener('resize', () => { refreshAllOverlays(); positionContentMultiOverlays(); }, true);
 
   async function loadSelectorsAndRender() {
     try {
       const { selectors, mainSelectors } = await chrome.storage.local.get(['selectors', 'mainSelectors']);
       const s = selectors || {};
       const m = mainSelectors || {};
+      upsertFieldOverlay('main_container', m.container);
       upsertFieldOverlay('main_title', m.title);
       upsertFieldOverlay('main_summary', m.summary);
       upsertFieldOverlay('main_link', m.link);
+      // Blue multi-overlays for all titles/summaries inside container
+      upsertMainMultiOverlays('main_title', m.title, m.container);
+      upsertMainMultiOverlays('main_summary', m.summary, m.container);
       upsertFieldOverlay('title', s.title);
       upsertFieldOverlay('summary', s.summary);
       upsertFieldOverlay('category', s.category);
       upsertFieldOverlay('date', s.date);
       upsertFieldOverlay('content', s.content);
       upsertFieldOverlay('image', s.image);
+      // Render multi overlays for content across the page
+      upsertContentMultiOverlays(s.content);
     } catch {}
   }
 
@@ -481,12 +616,16 @@
       upsertFieldOverlay('date', next.date);
       upsertFieldOverlay('content', next.content);
       upsertFieldOverlay('image', next.image);
+      upsertContentMultiOverlays(next.content);
     }
     if (area === 'local' && changes.mainSelectors) {
       const nextM = changes.mainSelectors.newValue || {};
+      upsertFieldOverlay('main_container', nextM.container);
       upsertFieldOverlay('main_title', nextM.title);
       upsertFieldOverlay('main_summary', nextM.summary);
       upsertFieldOverlay('main_link', nextM.link);
+      upsertMainMultiOverlays('main_title', nextM.title, nextM.container);
+      upsertMainMultiOverlays('main_summary', nextM.summary, nextM.container);
     }
   });
 
@@ -494,6 +633,10 @@
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg?.type === 'SELECTION_SAVED') {
       upsertFieldOverlay(msg.fieldKey, msg.selector);
+      if (msg.fieldKey === 'content') {
+        // Trigger content multi overlays immediately after saving
+        upsertContentMultiOverlays(msg.selector);
+      }
     }
   });
 
